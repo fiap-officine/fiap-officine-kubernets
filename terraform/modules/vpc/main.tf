@@ -1,102 +1,36 @@
-resource "aws_vpc" "main" {
-  cidr_block           = var.cidr_block
-  enable_dns_support   = true
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "6.7.2"
+
+  name = var.name
+  cidr = var.cidr
+
+  azs              = var.availability_zones
+  public_subnets   = var.public_subnets
+  private_subnets  = var.private_subnets
+  database_subnets = var.database_subnets
+
+  # NAT Gateway
+  enable_nat_gateway     = true
+  single_nat_gateway     = var.single_nat_gateway
+  one_nat_gateway_per_az = !var.single_nat_gateway
+
+  # DNS
   enable_dns_hostnames = true
+  enable_dns_support   = true
 
-  tags = merge(var.tags, {
-    Name = "${var.name}-vpc"
-  })
-}
+  # Subnet group para RDS (cria o aws_db_subnet_group automaticamente)
+  create_database_subnet_group       = true
+  create_database_subnet_route_table = true
 
-resource "aws_subnet" "public" {
-  count                   = length(var.public_subnet_cidrs)
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidrs[count.index]
-  availability_zone       = var.availability_zones[count.index]
-  map_public_ip_on_launch = true
-
-  tags = merge(var.tags, {
-    Name                     = "${var.name}-public-${count.index + 1}"
+  # Tags necessárias para o ALB Controller e Cluster Autoscaler do EKS
+  public_subnet_tags = merge(var.tags, {
     "kubernetes.io/role/elb" = "1"
   })
-}
 
-resource "aws_subnet" "private" {
-  count             = length(var.private_subnet_cidrs)
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_subnet_cidrs[count.index]
-  availability_zone = var.availability_zones[count.index]
-
-  tags = merge(var.tags, {
-    Name                              = "${var.name}-private-${count.index + 1}"
+  private_subnet_tags = merge(var.tags, {
     "kubernetes.io/role/internal-elb" = "1"
   })
-}
 
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-igw"
-  })
-}
-
-resource "aws_eip" "nat" {
-  count  = length(var.public_subnet_cidrs)
-  domain = "vpc"
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-nat-eip-${count.index + 1}"
-  })
-}
-
-resource "aws_nat_gateway" "main" {
-  count         = length(var.public_subnet_cidrs)
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-nat-${count.index + 1}"
-  })
-
-  depends_on = [aws_internet_gateway.main]
-}
-
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-public-rt"
-  })
-}
-
-resource "aws_route_table_association" "public" {
-  count          = length(var.public_subnet_cidrs)
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_route_table" "private" {
-  count  = length(var.private_subnet_cidrs)
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main[count.index].id
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-private-rt-${count.index + 1}"
-  })
-}
-
-resource "aws_route_table_association" "private" {
-  count          = length(var.private_subnet_cidrs)
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
+  tags = var.tags
 }

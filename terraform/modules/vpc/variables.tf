@@ -1,31 +1,42 @@
 variable "name" {
-  description = "Name prefix for all VPC resources"
+  description = "Name prefix for the VPC and all related resources"
   type        = string
 }
 
-variable "cidr_block" {
+variable "cidr" {
   description = "CIDR block for the VPC"
   type        = string
   default     = "10.0.0.0/16"
 }
 
-variable "public_subnet_cidrs" {
-  description = "List of CIDR blocks for public subnets"
-  type        = list(string)
-}
-
-variable "private_subnet_cidrs" {
-  description = "List of CIDR blocks for private subnets"
-  type        = list(string)
-}
-
 variable "availability_zones" {
-  description = "List of availability zones"
+  description = "List of availability zones to use"
   type        = list(string)
+}
+
+variable "public_subnets" {
+  description = "CIDR blocks for public subnets (one per AZ)"
+  type        = list(string)
+}
+
+variable "private_subnets" {
+  description = "CIDR blocks for private subnets — EKS nodes (one per AZ)"
+  type        = list(string)
+}
+
+variable "database_subnets" {
+  description = "CIDR blocks for database subnets — RDS PostgreSQL (one per AZ)"
+  type        = list(string)
+}
+
+variable "single_nat_gateway" {
+  description = "Use a single NAT Gateway for all AZs (true = cheaper, false = HA production)"
+  type        = bool
+  default     = true
 }
 
 variable "tags" {
-  description = "Tags to apply to all resources"
+  description = "Tags applied to all resources"
   type        = map(string)
   default     = {}
 }

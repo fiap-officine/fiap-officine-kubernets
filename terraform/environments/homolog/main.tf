@@ -8,17 +8,17 @@ terraform {
     }
   }
 
-  backend "s3" {
-    bucket         = "fiap-officine-terraform-state"
-    key            = "homolog/terraform.tfstate"
-    region         = "sa-east-1"
-    dynamodb_table = "fiap-officine-terraform-lock"
-    encrypt        = true
-  }
+  # Backend remoto — descomente após criar o bucket via bootstrap
+  # backend "s3" {
+  #   bucket         = "fiap-officine-terraform-state"
+  #   key            = "homolog/terraform.tfstate"
+  #   region         = "sa-east-1"
+  #   encrypt        = true
+  # }
 }
 
 provider "aws" {
-  region = "sa-east-1"
+  region = var.aws_region
 
   default_tags {
     tags = local.common_tags
@@ -42,76 +42,16 @@ locals {
 module "vpc" {
   source = "../../modules/vpc"
 
-  name       = "${local.project}-${local.environment}"
-  cidr_block = "10.1.0.0/16"
+  name = "${local.project}-${local.environment}"
+  cidr = var.vpc_cidr
 
-  availability_zones   = ["sa-east-1a", "sa-east-1b"]
-  public_subnet_cidrs  = ["10.1.0.0/24", "10.1.1.0/24"]
-  private_subnet_cidrs = ["10.1.10.0/24", "10.1.11.0/24"]
+  availability_zones = var.availability_zones
+  public_subnets     = var.public_subnets
+  private_subnets    = var.private_subnets
+  database_subnets   = var.database_subnets
 
-  tags = local.common_tags
-}
-
-# ──────────────────────────────────────────────
-# ECR
-# ──────────────────────────────────────────────
-module "ecr" {
-  source = "../../modules/ecr"
-
-  repository_names = ["fiap-officine-api", "fiap-officine-worker"]
-  scan_on_push     = true
-  max_image_count  = 10
-
-  tags = local.common_tags
-}
-
-# ──────────────────────────────────────────────
-# EKS
-# ──────────────────────────────────────────────
-module "eks" {
-  source = "../../modules/eks"
-
-  cluster_name           = "${local.project}-${local.environment}"
-  kubernetes_version     = "1.30"
-  public_subnet_ids      = module.vpc.public_subnet_ids
-  private_subnet_ids     = module.vpc.private_subnet_ids
-  endpoint_public_access = true
-
-  instance_types = ["t3.medium"]
-  desired_size   = 1
-  min_size       = 1
-  max_size       = 2
-
-  tags = local.common_tags
-}
-
-# ──────────────────────────────────────────────
-# ALB
-# ──────────────────────────────────────────────
-module "alb" {
-  source = "../../modules/alb"
-
-  name       = "${local.project}-${local.environment}"
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.public_subnet_ids
-
-  internal                   = false
-  enable_deletion_protection = false
-  health_check_path          = "/health"
-
-  tags = local.common_tags
-}
-
-# ──────────────────────────────────────────────
-# API Gateway
-# ──────────────────────────────────────────────
-module "api_gateway" {
-  source = "../../modules/api_gateway"
-
-  api_name        = "${local.project}-${local.environment}"
-  api_description = "API Gateway for ${local.project} - ${local.environment}"
-  stage_name      = local.environment
-  alb_dns_name    = module.alb.alb_dns_name
+  # Homolog: 1 NAT Gateway para economizar custo
+  single_nat_gateway = true
 
   tags = local.common_tags
 }
