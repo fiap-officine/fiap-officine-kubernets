@@ -20,7 +20,7 @@ output "target_group_arn" {
 
 output "security_group_id" {
   description = "Security group ID of the ALB"
-  value       = aws_security_group.alb.id
+  value       = length(var.security_group_ids) > 0 ? var.security_group_ids[0] : try(aws_security_group.alb[0].id, null)
 }
 
 output "http_listener_arn" {

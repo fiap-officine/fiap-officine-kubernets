@@ -19,6 +19,12 @@ variable "internal" {
   default     = false
 }
 
+variable "security_group_ids" {
+  description = "List of security group IDs to assign to the ALB. If empty, the module creates a default one."
+  type        = list(string)
+  default     = []
+}
+
 variable "enable_deletion_protection" {
   description = "Whether to enable deletion protection on the ALB"
   type        = bool

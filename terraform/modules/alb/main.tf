@@ -1,4 +1,5 @@
 resource "aws_security_group" "alb" {
+  count       = length(var.security_group_ids) == 0 ? 1 : 0
   name        = "${var.name}-alb-sg"
   description = "Security group for ALB"
   vpc_id      = var.vpc_id
@@ -35,7 +36,7 @@ resource "aws_lb" "main" {
   name               = "${var.name}-alb"
   internal           = var.internal
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
+  security_groups    = length(var.security_group_ids) > 0 ? var.security_group_ids : [aws_security_group.alb[0].id]
   subnets            = var.subnet_ids
 
   enable_deletion_protection = var.enable_deletion_protection

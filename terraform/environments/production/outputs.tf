@@ -37,3 +37,18 @@ output "vpc_cidr_block" {
   description = "VPC CIDR block"
   value       = module.vpc.vpc_cidr_block
 }
+
+output "alb_security_group_id" {
+  description = "Security Group ID for the ALB"
+  value       = module.security_groups.alb_security_group_id
+}
+
+output "eks_nodes_security_group_id" {
+  description = "Security Group ID for EKS nodes"
+  value       = module.security_groups.eks_nodes_security_group_id
+}
+
+output "rds_security_group_id" {
+  description = "Security Group ID for RDS PostgreSQL"
+  value       = module.security_groups.rds_security_group_id
+}
