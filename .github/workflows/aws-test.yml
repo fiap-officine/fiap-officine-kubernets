@@ -1,4 +1,4 @@
-name: AWS Authentication Test
+name: AWS OIDC Test
 
 on:
   workflow_dispatch:
@@ -12,14 +12,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Debug OIDC token claims
+      - name: Get OIDC token
+        id: oidc
         run: |
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com")
-          echo "=== OIDC Token claims ==="
-          echo $TOKEN | jq -r '.value' | cut -d. -f2 | \
-            awk '{n=length($0)%4; if(n==2) $0=$0"=="; if(n==3) $0=$0"="; print}' | \
-            base64 -d | jq .
+          RESPONSE=$(curl -s \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+
+          TOKEN=$(echo "$RESPONSE" | jq -r '.value')
+
+          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f2)
+
+          # Add base64 padding
+          PADDING=$((4 - ${#PAYLOAD} % 4))
+          if [ "$PADDING" -ne 4 ]; then
+            PAYLOAD="${PAYLOAD}$(printf '=%.0s' $(seq 1 $PADDING))"
+          fi
+
+          echo "$PAYLOAD" | base64 -d | jq '{
+            iss,
+            aud,
+            sub,
+            repository,
+            repository_id,
+            repository_owner,
+            repository_owner_id,
+            ref,
+            ref_type
+          }'
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
