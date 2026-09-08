@@ -12,6 +12,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug OIDC token claims
+        run: |
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com")
+          echo "=== OIDC Token claims ==="
+          echo $TOKEN | jq -r '.value' | cut -d. -f2 | \
+            awk '{n=length($0)%4; if(n==2) $0=$0"=="; if(n==3) $0=$0"="; print}' | \
+            base64 -d | jq .
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
