@@ -33,3 +33,34 @@ variable "database_subnets" {
   type        = list(string)
   default     = ["10.0.21.0/24", "10.0.22.0/24", "10.0.23.0/24"]
 }
+
+# ── EKS Settings ────────────────────────────────
+variable "kubernetes_version" {
+  description = "Kubernetes version for EKS cluster"
+  type        = string
+  default     = "1.31"
+}
+
+variable "eks_instance_types" {
+  description = "Instance types for EKS worker nodes"
+  type        = list(string)
+  default     = ["t3.medium"]
+}
+
+variable "eks_desired_size" {
+  description = "Desired number of worker nodes"
+  type        = number
+  default     = 2
+}
+
+variable "eks_min_size" {
+  description = "Minimum number of worker nodes"
+  type        = number
+  default     = 1
+}
+
+variable "eks_max_size" {
+  description = "Maximum number of worker nodes"
+  type        = number
+  default     = 3
+}

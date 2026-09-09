@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
   }
 
   # Backend remoto — descomente após criar o bucket via bootstrap
@@ -65,6 +69,31 @@ module "security_groups" {
   name     = "${local.project}-${local.environment}"
   vpc_id   = module.vpc.vpc_id
   vpc_cidr = var.vpc_cidr
+
+  tags = local.common_tags
+}
+
+# ──────────────────────────────────────────────
+# EKS Cluster + Managed Node Group
+# ──────────────────────────────────────────────
+module "eks" {
+  source = "../../modules/eks"
+
+  cluster_name       = "${local.project}-${local.environment}"
+  kubernetes_version = var.kubernetes_version
+
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  endpoint_public_access  = true
+  endpoint_private_access = true
+
+  node_security_group_id = module.security_groups.eks_nodes_security_group_id
+
+  instance_types = var.eks_instance_types
+  desired_size   = var.eks_desired_size
+  min_size       = var.eks_min_size
+  max_size       = var.eks_max_size
 
   tags = local.common_tags
 }
