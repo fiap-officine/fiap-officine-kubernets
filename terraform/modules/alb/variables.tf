@@ -9,14 +9,14 @@ variable "vpc_id" {
 }
 
 variable "subnet_ids" {
-  description = "List of subnet IDs for the ALB (public subnets)"
+  description = "List of subnet IDs for the ALB (private subnets for internal ALB)"
   type        = list(string)
 }
 
 variable "internal" {
-  description = "Whether the ALB is internal"
+  description = "Whether the ALB is internal (true for API Gateway -> VPC Link -> Internal ALB)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "security_group_ids" {
