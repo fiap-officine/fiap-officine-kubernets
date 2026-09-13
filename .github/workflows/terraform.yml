@@ -1,45 +1,134 @@
-name: Terraform
+name: Terraform CI/CD - Kubernetes & Network
 
 on:
-  pull_request:
-    paths:
-      - "terraform/**"
-
   push:
     branches:
       - main
+      - develop
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform.yml"
+  pull_request:
+    branches:
+      - main
+      - develop
     paths:
       - "terraform/**"
 
 permissions:
   id-token: write
   contents: read
+  pull-requests: write
 
 jobs:
-  terraform:
+  validate:
+    name: Terraform Validate
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.5
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive terraform/
+
+      - name: Init and Validate Homolog
+        run: |
+          cd terraform/environments/homolog
+          terraform init -backend=false
+          terraform validate
+
+      - name: Init and Validate Production
+        run: |
+          cd terraform/environments/production
+          terraform init -backend=false
+          terraform validate
+
+  plan:
+    name: Terraform Plan
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.5
+
+      - name: Configure AWS Credentials (Access Keys)
+        if: secrets.AWS_ROLE_ARN == ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: sa-east-1
+
+      - name: Configure AWS Credentials (OIDC Role)
+        if: secrets.AWS_ROLE_ARN != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: sa-east-1
 
+      - name: Terraform Plan (Homolog)
+        if: github.ref == 'refs/heads/develop' || github.base_ref == 'develop'
+        run: |
+          cd terraform/environments/homolog
+          terraform init
+          terraform plan -no-color
+
+      - name: Terraform Plan (Production)
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        run: |
+          cd terraform/environments/production
+          terraform init
+          terraform plan -no-color
+
+  apply:
+    name: Terraform Apply
+    needs: plan
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.5
 
-      - name: Terraform Init
-        working-directory: terraform/environments/homolog
-        run: terraform init
+      - name: Configure AWS Credentials (Access Keys)
+        if: secrets.AWS_ROLE_ARN == ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: sa-east-1
 
-      - name: Terraform Validate
-        working-directory: terraform/environments/homolog
-        run: terraform validate
+      - name: Configure AWS Credentials (OIDC Role)
+        if: secrets.AWS_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: sa-east-1
 
-      - name: Terraform Plan
-        working-directory: terraform/environments/homolog
-        run: terraform plan
+      - name: Terraform Apply (Homolog)
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          cd terraform/environments/homolog
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Terraform Apply (Production)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd terraform/environments/production
+          terraform init
+          terraform apply -auto-approve

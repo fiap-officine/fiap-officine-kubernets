@@ -24,7 +24,7 @@ output "database_subnet_group_name" {
 }
 
 output "nat_gateway_ids" {
-  description = "NAT Gateway"
+  description = "NAT Gateway IDs (vazio em Free Tier)"
   value       = module.vpc.nat_gateway_ids
 }
 
@@ -53,33 +53,50 @@ output "rds_security_group_id" {
   value       = module.security_groups.rds_security_group_id
 }
 
-# ── EKS Outputs ─────────────────────────────────
-output "cluster_name" {
-  description = "Nome do cluster EKS"
-  value       = module.eks.cluster_name
+output "lambda_security_group_id" {
+  description = "Security Group ID para a Function Serverless de Autenticação (Lambda)"
+  value       = module.security_groups.lambda_security_group_id
 }
 
-output "cluster_endpoint" {
-  description = "Endpoint da API do Kubernetes"
-  value       = module.eks.cluster_endpoint
+# ── K3s Free Tier Outputs ───────────────────────
+output "k3s_instance_id" {
+  description = "EC2 Instance ID do nó K3s"
+  value       = module.k3s.instance_id
 }
 
-output "cluster_security_group_id" {
-  description = "Security Group ID do cluster EKS (control plane)"
-  value       = module.eks.cluster_security_group_id
+output "k3s_public_ip" {
+  description = "IP público da instância K3s para acessar a aplicação e API"
+  value       = module.k3s.public_ip
 }
 
-output "node_security_group_id" {
-  description = "Security Group ID dos worker nodes do EKS"
-  value       = module.eks.node_security_group_id
+output "k3s_api_endpoint" {
+  description = "Endpoint da API do Kubernetes K3s"
+  value       = module.k3s.kubernetes_api_endpoint
 }
 
-output "oidc_provider_arn" {
-  description = "ARN do provedor OIDC para IRSA (AWS Load Balancer Controller)"
-  value       = module.eks.oidc_provider_arn
+output "k3s_ssm_connect_command" {
+  description = "Comando AWS CLI para conectar diretamente ao terminal da máquina sem SSH"
+  value       = module.k3s.ssm_connect_command
 }
 
-output "cluster_certificate_authority_data" {
-  description = "Certificate Authority data do cluster EKS"
-  value       = module.eks.cluster_certificate_authority_data
+# ── API Gateway Outputs ─────────────────────────
+output "api_gateway_id" {
+  description = "ID do API Gateway HTTP"
+  value       = module.api_gateway.api_id
 }
+
+output "api_gateway_endpoint" {
+  description = "URL pública de entrada do API Gateway"
+  value       = module.api_gateway.api_endpoint
+}
+
+output "auth_login_url" {
+  description = "Endpoint de login para autenticação via CPF (POST /auth/login)"
+  value       = module.api_gateway.auth_login_url
+}
+
+output "health_url" {
+  description = "Endpoint público para monitoramento e healthchecks (GET /health)"
+  value       = module.api_gateway.health_url
+}
+

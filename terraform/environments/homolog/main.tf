@@ -41,7 +41,7 @@ locals {
 }
 
 # ──────────────────────────────────────────────
-# VPC
+# VPC (100% Free Tier: sem NAT Gateway)
 # ──────────────────────────────────────────────
 module "vpc" {
   source = "../../modules/vpc"
@@ -54,14 +54,15 @@ module "vpc" {
   private_subnets    = var.private_subnets
   database_subnets   = var.database_subnets
 
-  # Homolog: 1 NAT Gateway para economizar custo
-  single_nat_gateway = true
+  # Free Tier: NAT Gateway desabilitado ($0 custo)
+  # Instâncias na public subnet usam Internet Gateway direto
+  enable_nat_gateway = var.enable_nat_gateway
 
   tags = local.common_tags
 }
 
 # ──────────────────────────────────────────────
-# Security Groups (ALB, EKS, RDS)
+# Security Groups (ALB, EKS/K3s, RDS)
 # ──────────────────────────────────────────────
 module "security_groups" {
   source = "../../modules/security_groups"
@@ -74,26 +75,58 @@ module "security_groups" {
 }
 
 # ──────────────────────────────────────────────
-# EKS Cluster + Managed Node Group
+# Kubernetes Free Tier: K3s Node (t3.micro, $0 custo)
 # ──────────────────────────────────────────────
-module "eks" {
-  source = "../../modules/eks"
+module "k3s" {
+  source = "../../modules/k3s"
 
-  cluster_name       = "${local.project}-${local.environment}"
-  kubernetes_version = var.kubernetes_version
+  name      = "${local.project}-${local.environment}"
+  vpc_id    = module.vpc.vpc_id
+  subnet_id = module.vpc.public_subnet_ids[0] # Subnet pública para acesso direto via IGW sem custo de NAT
 
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnet_ids
-
-  endpoint_public_access  = true
-  endpoint_private_access = true
-
-  node_security_group_id = module.security_groups.eks_nodes_security_group_id
-
-  instance_types = var.eks_instance_types
-  desired_size   = var.eks_desired_size
-  min_size       = var.eks_min_size
-  max_size       = var.eks_max_size
+  instance_type = var.instance_type # t3.micro (Free Tier)
+  disk_size     = 20                # 20 GiB gp3 (Free Tier permite até 30 GiB)
 
   tags = local.common_tags
 }
+
+# ──────────────────────────────────────────────
+# API Gateway (HTTP API v2 - 100% Free Tier, $0 custo)
+# ──────────────────────────────────────────────
+module "api_gateway" {
+  source = "../../modules/api_gateway"
+
+  name        = "${local.project}-${local.environment}"
+  description = "HTTP API Gateway for ${local.project} (${local.environment})"
+  target_uri  = "http://${module.k3s.public_ip}:80"
+
+  auth_lambda_arn       = var.auth_lambda_arn
+  authorizer_lambda_arn = var.authorizer_lambda_arn
+
+  tags = local.common_tags
+}
+
+# ──────────────────────────────────────────────
+# EKS Cluster Gerenciado (Descomente quando desejar subir o EKS pago da AWS)
+# ──────────────────────────────────────────────
+# module "eks" {
+#   source = "../../modules/eks"
+# 
+#   cluster_name       = "${local.project}-${local.environment}"
+#   kubernetes_version = var.kubernetes_version
+# 
+#   vpc_id     = module.vpc.vpc_id
+#   subnet_ids = module.vpc.private_subnet_ids
+# 
+#   endpoint_public_access  = true
+#   endpoint_private_access = true
+# 
+#   node_security_group_id = module.security_groups.eks_nodes_security_group_id
+# 
+#   instance_types = var.eks_instance_types
+#   desired_size   = var.eks_desired_size
+#   min_size       = var.eks_min_size
+#   max_size       = var.eks_max_size
+# 
+#   tags = local.common_tags
+# }

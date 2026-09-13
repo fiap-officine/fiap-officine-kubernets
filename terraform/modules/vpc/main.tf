@@ -11,9 +11,12 @@ module "vpc" {
   database_subnets = var.database_subnets
 
   # NAT Gateway
-  enable_nat_gateway     = true
+  enable_nat_gateway     = var.enable_nat_gateway
   single_nat_gateway     = var.single_nat_gateway
-  one_nat_gateway_per_az = !var.single_nat_gateway
+  one_nat_gateway_per_az = var.enable_nat_gateway && !var.single_nat_gateway
+
+  # Habilitar IP público nas subnets públicas (permite acesso direto à internet via IGW sem custo de NAT)
+  map_public_ip_on_launch = true
 
   # DNS
   enable_dns_hostnames = true

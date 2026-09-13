@@ -29,6 +29,12 @@ variable "database_subnets" {
   type        = list(string)
 }
 
+variable "enable_nat_gateway" {
+  description = "Whether to provision NAT Gateways (false = $0 cost, true = paid NAT Gateways)"
+  type        = bool
+  default     = true
+}
+
 variable "single_nat_gateway" {
   description = "Use a single NAT Gateway for all AZs (true = cheaper, false = HA production)"
   type        = bool

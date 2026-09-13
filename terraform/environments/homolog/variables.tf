@@ -16,6 +16,18 @@ variable "availability_zones" {
   default     = ["sa-east-1a", "sa-east-1b", "sa-east-1c"]
 }
 
+variable "enable_nat_gateway" {
+  description = "Habilitar NAT Gateway (false = $0 custo no Free Tier)"
+  type        = bool
+  default     = false
+}
+
+variable "instance_type" {
+  description = "Tipo de instância EC2 para o K3s (t3.micro é elegível para o Free Tier)"
+  type        = string
+  default     = "t3.micro"
+}
+
 variable "public_subnets" {
   description = "Public subnet CIDRs (ALB)"
   type        = list(string)
@@ -64,3 +76,17 @@ variable "eks_max_size" {
   type        = number
   default     = 3
 }
+
+# ── Serverless Auth Lambda Settings (Repo 1) ───
+variable "auth_lambda_arn" {
+  description = "ARN da Lambda de autenticação por CPF (fiap-officine-auth-lambda)"
+  type        = string
+  default     = null
+}
+
+variable "authorizer_lambda_arn" {
+  description = "ARN da Lambda authorizer para validação de JWT"
+  type        = string
+  default     = null
+}
+
