@@ -75,8 +75,8 @@ data "aws_iam_policy_document" "trust" {
 
 # ── IAM Role ───────────────────────────────────
 resource "aws_iam_role" "github_actions" {
-  name               = "fiap-officine-github-actions"
-  assume_role_policy = data.aws_iam_policy_document.trust.json
+  name                 = "fiap-officine-github-actions"
+  assume_role_policy   = data.aws_iam_policy_document.trust.json
   max_session_duration = 3600
 }
 
