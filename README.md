@@ -32,7 +32,7 @@ graph TD
         subgraph VPC["VPC 10.0.0.0/16 (fiap-officine-homolog)"]
             subgraph PUBLIC_SUBNETS["Public Subnets (10.0.1.0/24, 10.0.2.0/24, 10.0.3.0/24)"]
                 IGW["Internet Gateway"]
-                K3S["Nó Kubernetes K3s (EC2 t3.micro)\nIP: 18.231.53.164 | SG: k3s-sg\nIngress Traefik (Porta 80)"]
+                K3S["Nó Kubernetes K3s (EC2 t3.micro)\nIP: 54.232.242.171 | SG: k3s-sg\nIngress Traefik (Porta 80)"]
             end
 
             subgraph PRIVATE_SUBNETS["Private Subnets (10.0.11.0/24, 10.0.12.0/24, 10.0.13.0/24)"]
@@ -144,7 +144,7 @@ terraform apply -auto-approve
 
 ### 3. Conectar ao Terminal do Nó Kubernetes via AWS SSM (Sem Chave SSH):
 ```bash
-aws ssm start-session --target i-0c870b260ba6ee10f --region sa-east-1
+aws ssm start-session --target i-0484adf59b70f850f --region sa-east-1
 ```
 
 ---
@@ -154,7 +154,7 @@ aws ssm start-session --target i-0c870b260ba6ee10f --region sa-east-1
 * **VPC ID**: `vpc-074f1e84d85d2f999`
 * **API Gateway ID**: `kai652jumh`
 * **URL Pública do API Gateway**: `https://kai652jumh.execute-api.sa-east-1.amazonaws.com`
-* **Instância K3s**: `i-0c870b260ba6ee10f` (IP: `18.231.53.164`)
+* **Instância K3s**: `i-0484adf59b70f850f` (IP: `54.232.242.171`)
 * **Security Group da Lambda**: `sg-099bc9a0635f1d4a6`
 * **Security Group do RDS**: `sg-0faf87d7a9a816a46`
 
