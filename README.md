@@ -94,6 +94,14 @@ O API Gateway provisionado por este repositório expõe diretamente os seguintes
 * **Healthcheck Detalhado (DB + Cache)**:  
   👉 [https://kai652jumh.execute-api.sa-east-1.amazonaws.com/api/v1/health](https://kai652jumh.execute-api.sa-east-1.amazonaws.com/api/v1/health)
 
+### 🔐 Comportamento de Acesso e Códigos de Retorno das Rotas
+
+| Tipo de Rota | Endpoints | Autorização | Comportamento e Resposta |
+| :--- | :--- | :--- | :--- |
+| **Públicas** | `/health`, `/docs`, `/openapi.json`, `/redoc` | Nenhuma (`NONE`) | `200 OK` (retorna `503 Service Unavailable` apenas em janelas transitórias de reinicialização/cold start do nó EC2 Free Tier) |
+| **Autenticação** | `POST /auth/login` | Nenhuma (Valida CPF no RDS) | `200 OK` contendo o `access_token` JWT emitido pela Lambda |
+| **Protegidas** | `/api/v1/ordens-servico/*`, `/api/v1/clientes/*`, etc. | **Bearer JWT Obrigatório** | • **Sem Token ou Inválido**: `401 Unauthorized` (bloqueado pelo **Lambda Authorizer** de borda antes de alcançar o nó Kubernetes)<br>• **Com Token Válido**: `200 OK` / `201 Created` processado pelos pods da API |
+
 ---
 
 ## 🛠️ Estrutura de Módulos Terraform
