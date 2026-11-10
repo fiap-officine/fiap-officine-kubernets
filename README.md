@@ -5,6 +5,24 @@ Repositório responsável pelo provisionamento e gerenciamento da **Infraestrutu
 
 ---
 
+
+## Fase 4 — plataforma compartilhada dos microsserviços
+
+| Mudança | Onde |
+|---|---|
+| ECR com um repositório por serviço (`fiap-officine-os-service`, `-billing-service`, `-execution-service`) | `environments/homolog/main.tf` (`module "ecr"`) — repositórios são da conta, por isso criados só uma vez |
+| Rotas públicas (sem authorizer): `POST /api/v1/pagamentos/webhook` (Mercado Pago, validado por `x-signature`), `GET /internal/clientes/status/{cpf}` (Lambda, validado por `x-internal-token`), docs/health do Billing e do Execution | `modules/api_gateway/main.tf` (`aws_apigatewayv2_route.public_backend`) |
+| IMDSv2 com `http_put_response_hop_limit = 2` para os pods usarem o instance profile (SQS/DynamoDB sem access keys) | `modules/k3s/main.tf` |
+| Output `k3s_node_role_name`: cada microsserviço anexa a sua política IAM nessa role (`node_role_name` no Terraform do serviço) | `modules/k3s/outputs.tf` |
+
+O Traefik roteia por path para cada Service (`/api/v1/ordens-servico` → os-service,
+`/api/v1/orcamentos|pagamentos` → billing-service, `/api/v1/execucoes|estoque` →
+execution-service); cada repositório publica o seu Ingress no namespace `officine`.
+
+> **Capacidade:** o nó t3.micro (1 GiB + 2 GiB swap) roda os três serviços com
+> 1 réplica cada (consumer/outbox no mesmo processo da API, sem Redis). Para a
+> gravação do vídeo, `instance_type = "t3.small"` dá folga (sai do Free Tier).
+
 ## 🎯 Propósito do Repositório
 
 O **fiap-officine-kubernets** gerencia e automatiza a infraestrutura de nuvem na AWS:

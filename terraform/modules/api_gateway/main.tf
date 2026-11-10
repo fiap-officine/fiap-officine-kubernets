@@ -164,6 +164,31 @@ resource "aws_apigatewayv2_route" "redoc" {
   authorization_type = "NONE"
 }
 
+# ── Fase 4: rotas públicas dos microsserviços ───
+# Webhook do Mercado Pago (não envia JWT; protegido pela validação de
+# x-signature no Billing), rota interna usada pela Lambda (protegida por
+# x-internal-token no OS Service) e docs/health do Billing e do Execution.
+locals {
+  public_backend_routes = toset([
+    "POST /api/v1/pagamentos/webhook",
+    "GET /internal/clientes/status/{cpf}",
+    "GET /billing/health",
+    "GET /billing/docs",
+    "GET /billing/openapi.json",
+    "GET /execution/health",
+    "GET /execution/docs",
+    "GET /execution/openapi.json",
+  ])
+}
+
+resource "aws_apigatewayv2_route" "public_backend" {
+  for_each           = local.public_backend_routes
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = each.value
+  target             = "integrations/${aws_apigatewayv2_integration.backend.id}"
+  authorization_type = "NONE"
+}
+
 # ── Rota Principal (Protegida por Authorizer se configurado)
 resource "aws_apigatewayv2_route" "default" {
   api_id             = aws_apigatewayv2_api.main.id

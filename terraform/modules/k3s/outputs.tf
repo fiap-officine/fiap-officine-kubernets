@@ -29,3 +29,8 @@ output "ssm_connect_command" {
   description = "Comando para conectar ao terminal do nó via AWS SSM sem necessidade de SSH"
   value       = "aws ssm start-session --target ${aws_instance.k3s.id} --region ${data.aws_region.current.region}"
 }
+
+output "node_role_name" {
+  description = "Role IAM do nó (os repos dos microsserviços anexam suas políticas SQS/DynamoDB aqui)"
+  value       = aws_iam_role.k3s.name
+}

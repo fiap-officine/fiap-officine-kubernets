@@ -100,3 +100,13 @@ output "health_url" {
   value       = module.api_gateway.health_url
 }
 
+
+output "ecr_repository_urls" {
+  description = "Repositórios ECR dos microsserviços (usados pelos pipelines)"
+  value       = module.ecr.repository_urls
+}
+
+output "k3s_node_role_name" {
+  description = "Role do nó K3s: informar em node_role_name no Terraform de cada microsserviço"
+  value       = module.k3s.node_role_name
+}

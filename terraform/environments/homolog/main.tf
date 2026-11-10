@@ -91,6 +91,22 @@ module "k3s" {
 }
 
 # ──────────────────────────────────────────────
+# ECR: um repositório por microsserviço (imagens com tag = SHA do commit)
+# ──────────────────────────────────────────────
+module "ecr" {
+  source = "../../modules/ecr"
+
+  repository_names = [
+    "fiap-officine-os-service",
+    "fiap-officine-billing-service",
+    "fiap-officine-execution-service",
+  ]
+  max_image_count = 15
+
+  tags = local.common_tags
+}
+
+# ──────────────────────────────────────────────
 # API Gateway (HTTP API v2 - 100% Free Tier, $0 custo)
 # ──────────────────────────────────────────────
 module "api_gateway" {

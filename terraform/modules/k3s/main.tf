@@ -117,6 +117,14 @@ resource "aws_instance" "k3s" {
   vpc_security_group_ids      = [aws_security_group.k3s.id]
   key_name                    = var.key_name
 
+  # IMDSv2 com hop limit 2: os pods (1 salto extra de rede) conseguem obter as
+  # credenciais do instance profile para acessar SQS/DynamoDB sem access keys.
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+
   root_block_device {
     volume_size           = var.disk_size
     volume_type           = "gp3"
