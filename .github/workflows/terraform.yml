@@ -68,17 +68,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: sa-east-1
 
+      # Ambiente único: homolog (projeto acadêmico) — develop e main aplicam aqui
       - name: Terraform Plan (Homolog)
-        if: github.ref == 'refs/heads/develop' || github.base_ref == 'develop'
         run: |
           cd terraform/environments/homolog
-          terraform init
-          terraform plan -no-color
-
-      - name: Terraform Plan (Production)
-        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-        run: |
-          cd terraform/environments/production
           terraform init
           terraform plan -no-color
 
@@ -104,15 +97,7 @@ jobs:
           aws-region: sa-east-1
 
       - name: Terraform Apply (Homolog)
-        if: github.ref == 'refs/heads/develop'
         run: |
           cd terraform/environments/homolog
-          terraform init
-          terraform apply -auto-approve
-
-      - name: Terraform Apply (Production)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          cd terraform/environments/production
           terraform init
           terraform apply -auto-approve
