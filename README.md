@@ -41,6 +41,21 @@ Pré-requisito: secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` na organiz
 > O nó usa um **Elastic IP**: parar e iniciar a instância (para economizar fora das
 > demos) não muda o endereço do API Gateway nem invalida o kubeconfig.
 
+### Permissões mínimas do usuário do CI
+
+O usuário IAM do GitHub Actions começa com `AdministratorAccess` só para a primeira
+subida. Depois, troque pela política [iam/github-actions-ci-policy.json](iam/github-actions-ci-policy.json):
+
+- serviços regionais apenas em `us-east-2` (condição `aws:RequestedRegion`);
+- SQS, DynamoDB, RDS, Lambda, ECR, logs, Secrets Manager e SSM apenas em recursos
+  com prefixo `fiap-officine-` (`/fiap-officine/*` no SSM);
+- IAM apenas em roles, políticas e instance profiles `fiap-officine-*`;
+- S3 apenas no bucket de state `fiap-officine-tfstate-*`.
+
+No console: **IAM → Usuários → github-actions-officine → Adicionar permissões → Criar
+política em linha → JSON**, cole o arquivo, salve como `fiap-officine-ci` e depois
+**remova** a política `AdministratorAccess` do usuário.
+
 O Traefik roteia por path para cada Service (`/api/v1/ordens-servico` → os-service,
 `/api/v1/orcamentos|pagamentos` → billing-service, `/api/v1/execucoes|estoque` →
 execution-service); cada repositório publica o seu Ingress no namespace `officine`.

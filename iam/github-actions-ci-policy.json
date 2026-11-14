@@ -1,0 +1,115 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Identidade",
+      "Effect": "Allow",
+      "Action": "sts:GetCallerIdentity",
+      "Resource": "*"
+    },
+    {
+      "Sid": "StateDoTerraform",
+      "Effect": "Allow",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::fiap-officine-tfstate-*",
+        "arn:aws:s3:::fiap-officine-tfstate-*/*"
+      ]
+    },
+    {
+      "Sid": "RedeComputeApiGatewaySomenteUsEast2",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:*",
+        "apigateway:*",
+        "ecr:GetAuthorizationToken",
+        "lambda:ListFunctions",
+        "lambda:GetAccountSettings",
+        "rds:Describe*",
+        "rds:ListTagsForResource",
+        "logs:DescribeLogGroups",
+        "ssm:DescribeParameters",
+        "secretsmanager:ListSecrets",
+        "kms:DescribeKey",
+        "kms:ListAliases"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": { "aws:RequestedRegion": "us-east-2" }
+      }
+    },
+    {
+      "Sid": "RecursosDoProjeto",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:*",
+        "dynamodb:*",
+        "rds:*",
+        "lambda:*",
+        "ecr:*",
+        "logs:*",
+        "secretsmanager:*",
+        "ssm:*"
+      ],
+      "Resource": [
+        "arn:aws:sqs:us-east-2:*:fiap-officine-*",
+        "arn:aws:dynamodb:us-east-2:*:table/fiap-officine-*",
+        "arn:aws:rds:us-east-2:*:db:fiap-officine-*",
+        "arn:aws:rds:us-east-2:*:subgrp:fiap-officine-*",
+        "arn:aws:rds:us-east-2:*:pg:default*",
+        "arn:aws:rds:us-east-2:*:og:default*",
+        "arn:aws:lambda:us-east-2:*:function:fiap-officine-*",
+        "arn:aws:ecr:us-east-2:*:repository/fiap-officine-*",
+        "arn:aws:logs:us-east-2:*:log-group:/aws/lambda/fiap-officine-*",
+        "arn:aws:logs:us-east-2:*:log-group:/aws/lambda/fiap-officine-*:*",
+        "arn:aws:secretsmanager:us-east-2:*:secret:fiap-officine-*",
+        "arn:aws:ssm:us-east-2:*:parameter/fiap-officine/*"
+      ]
+    },
+    {
+      "Sid": "SegredosDoSsmESecretsManager",
+      "Effect": "Allow",
+      "Action": ["kms:Decrypt", "kms:Encrypt", "kms:GenerateDataKey*"],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": [
+            "ssm.us-east-2.amazonaws.com",
+            "secretsmanager.us-east-2.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "IamSomenteDoProjeto",
+      "Effect": "Allow",
+      "Action": "iam:*",
+      "Resource": [
+        "arn:aws:iam::*:role/fiap-officine-*",
+        "arn:aws:iam::*:policy/fiap-officine-*",
+        "arn:aws:iam::*:instance-profile/fiap-officine-*"
+      ]
+    },
+    {
+      "Sid": "IamLeitura",
+      "Effect": "Allow",
+      "Action": ["iam:Get*", "iam:List*"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "RolesVinculadasAServicos",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": [
+            "rds.amazonaws.com",
+            "ecr.amazonaws.com",
+            "ops.apigateway.amazonaws.com"
+          ]
+        }
+      }
+    }
+  ]
+}
