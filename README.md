@@ -45,9 +45,10 @@ O Traefik roteia por path para cada Service (`/api/v1/ordens-servico` → os-ser
 `/api/v1/orcamentos|pagamentos` → billing-service, `/api/v1/execucoes|estoque` →
 execution-service); cada repositório publica o seu Ingress no namespace `officine`.
 
-> **Capacidade:** o nó t3.micro (1 GiB + 2 GiB swap) roda os três serviços com
-> 1 réplica cada (consumer/outbox no mesmo processo da API, sem Redis). Para a
-> gravação do vídeo, `instance_type = "t3.small"` dá folga (sai do Free Tier).
+> **Capacidade:** o nó é um **t3.medium (4 GiB)**. No t3.micro (1 GiB + 2 GiB de
+> swap) o nó ficou *NotReady* com os três serviços durante os deploys (o rolling
+> update sobe um pod a mais). Para economizar, pare a instância fora das demos: o
+> Elastic IP mantém o endereço.
 
 ## 🎯 Propósito do Repositório
 
