@@ -14,9 +14,14 @@ variable "subnet_id" {
 }
 
 variable "ami_id" {
-  description = "AMI ID for the K3s node (Ubuntu 24.04 LTS x86_64 in sa-east-1)"
+  description = "AMI ID para o nó K3s (null = Ubuntu 24.04 LTS x86_64 mais recente da Canonical na região)"
   type        = string
-  default     = "ami-0a3c776dfe8c38625"
+  default     = null
+}
+
+variable "ssm_parameter_prefix" {
+  description = "Prefixo no SSM Parameter Store onde o nó publica o kubeconfig (ex.: /fiap-officine/homolog)"
+  type        = string
 }
 
 variable "instance_type" {

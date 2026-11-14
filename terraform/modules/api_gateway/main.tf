@@ -170,6 +170,10 @@ resource "aws_apigatewayv2_route" "redoc" {
 # x-internal-token no OS Service) e docs/health do Billing e do Execution.
 locals {
   public_backend_routes = toset([
+    # Login/cadastro dos serviços: públicos mesmo com o Lambda Authorizer no $default
+    "POST /api/v1/auth/login",
+    "POST /api/v1/auth/register",
+    "POST /api/v1/auth/cliente",
     "POST /api/v1/pagamentos/webhook",
     "GET /internal/clientes/status/{cpf}",
     "GET /billing/health",

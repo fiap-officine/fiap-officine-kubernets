@@ -15,6 +15,32 @@ Repositório responsável pelo provisionamento e gerenciamento da **Infraestrutu
 | IMDSv2 com `http_put_response_hop_limit = 2` para os pods usarem o instance profile (SQS/DynamoDB sem access keys) | `modules/k3s/main.tf` |
 | Output `k3s_node_role_name`: cada microsserviço anexa a sua política IAM nessa role (`node_role_name` no Terraform do serviço) | `modules/k3s/outputs.tf` |
 
+| State remoto no S3 (`fiap-officine-tfstate-<account_id>`, criado pelo próprio workflow) | `environments/homolog/main.tf` + `.github/workflows/terraform.yml` |
+| AMI Ubuntu 24.04 da Canonical buscada na região (sem ID fixo de outra conta) | `modules/k3s/main.tf` (`data "aws_ami"`) |
+| Elastic IP no nó; o nó publica o kubeconfig (com esse IP) no SSM e os pipelines de deploy leem de lá | `modules/k3s/main.tf` (`aws_eip`, `user_data`) |
+| RDS acessível a partir do nó K3s (regra de entrada 5432) | `environments/homolog/main.tf` (`aws_security_group_rule.rds_from_k3s`) |
+| Lambda de auth e authorizer ligadas automaticamente ao API Gateway quando já existem | `environments/homolog/main.tf` (`data "aws_lambda_functions"`) |
+| Parâmetros compartilhados no SSM (`/fiap-officine/homolog/...`): URL do API Gateway, role do nó, IP público, VPC, SG e subnet group do RDS | `environments/homolog/main.tf` (`aws_ssm_parameter.shared`) |
+
+### Subindo o ambiente numa conta AWS nova
+
+Pré-requisito: secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` na organização
+(usuário IAM do CI). Ordem dos merges em `develop` (cada merge dispara o apply):
+
+1. **fiap-officine-kubernets** — VPC, nó K3s, API Gateway, ECR e parâmetros no SSM.
+   O nó leva ~5 min para instalar o K3s e publicar `/fiap-officine/homolog/k3s/kubeconfig`.
+2. **fiap-officine-database** — RDS PostgreSQL; publica endpoint e credenciais master
+   (`/fiap-officine/homolog/rds/*`, senha como SecureString).
+3. **fiap-officine-os-service**, **-billing-service**, **-execution-service** — o
+   `infra.yml` cria filas, tabelas e IAM; o `ci-cd.yml` publica a imagem no ECR, cria os
+   bancos lógicos e faz o deploy lendo kubeconfig/RDS/API Gateway do SSM.
+4. **fiap-officine-lambda** — Lambda de auth e authorizer (URL do os-service lida do SSM).
+5. **Rodar de novo o workflow deste repositório** (Actions → *Re-run jobs*) para ligar
+   a Lambda (`/auth/login`) e o authorizer (`$default`) ao API Gateway.
+
+> O nó usa um **Elastic IP**: parar e iniciar a instância (para economizar fora das
+> demos) não muda o endereço do API Gateway nem invalida o kubeconfig.
+
 O Traefik roteia por path para cada Service (`/api/v1/ordens-servico` → os-service,
 `/api/v1/orcamentos|pagamentos` → billing-service, `/api/v1/execucoes|estoque` →
 execution-service); cada repositório publica o seu Ingress no namespace `officine`.

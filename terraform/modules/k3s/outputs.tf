@@ -4,8 +4,8 @@ output "instance_id" {
 }
 
 output "public_ip" {
-  description = "IP público da instância K3s"
-  value       = aws_instance.k3s.public_ip
+  description = "IP público (Elastic IP) da instância K3s"
+  value       = aws_eip.k3s.public_ip
 }
 
 output "private_ip" {
@@ -20,7 +20,7 @@ output "security_group_id" {
 
 output "kubernetes_api_endpoint" {
   description = "URL do Kubernetes API Server"
-  value       = "https://${aws_instance.k3s.public_ip}:6443"
+  value       = "https://${aws_eip.k3s.public_ip}:6443"
 }
 
 data "aws_region" "current" {}
