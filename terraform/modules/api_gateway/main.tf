@@ -55,6 +55,12 @@ resource "aws_apigatewayv2_integration" "backend" {
   integration_uri      = var.target_uri
   connection_type      = "INTERNET"
   passthrough_behavior = "WHEN_NO_MATCH"
+
+  # Rotas explícitas (fora do $default) não repassam o caminho original para o
+  # backend: sem isto /billing/health, o webhook e o login chegam ao Traefik como "/"
+  request_parameters = {
+    "overwrite:path" = "$request.path"
+  }
 }
 
 # ── Auth Lambda Integration (Serverless Function)
