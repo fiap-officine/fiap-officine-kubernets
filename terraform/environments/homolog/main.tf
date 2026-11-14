@@ -98,7 +98,7 @@ module "k3s" {
   vpc_id    = module.vpc.vpc_id
   subnet_id = module.vpc.public_subnet_ids[0] # Subnet pública para acesso direto via IGW sem custo de NAT
 
-  instance_type = var.instance_type # t3.medium (4 GiB)
+  instance_type = var.instance_type # t3.small (2 GiB)
   disk_size     = 20                # 20 GiB gp3 (Free Tier permite até 30 GiB)
 
   # O nó publica o kubeconfig em <ssm_prefix>/k3s/kubeconfig

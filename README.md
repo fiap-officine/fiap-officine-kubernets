@@ -45,10 +45,10 @@ O Traefik roteia por path para cada Service (`/api/v1/ordens-servico` → os-ser
 `/api/v1/orcamentos|pagamentos` → billing-service, `/api/v1/execucoes|estoque` →
 execution-service); cada repositório publica o seu Ingress no namespace `officine`.
 
-> **Capacidade:** o nó é um **t3.medium (4 GiB)**. No t3.micro (1 GiB + 2 GiB de
-> swap) o nó ficou *NotReady* com os três serviços durante os deploys (o rolling
-> update sobe um pod a mais). Para economizar, pare a instância fora das demos: o
-> Elastic IP mantém o endereço.
+> **Capacidade:** o nó é um **t3.small (2 GiB)**, o maior tipo permitido no plano
+> gratuito da AWS (o t3.medium exige plano pago: `FreeTierRestrictionError`). No
+> t3.micro (1 GiB) o nó ficou *NotReady* com os três serviços durante os deploys.
+> Para economizar, pare a instância fora das demos: o Elastic IP mantém o endereço.
 
 ## 🎯 Propósito do Repositório
 
