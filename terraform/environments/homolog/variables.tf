@@ -23,9 +23,9 @@ variable "enable_nat_gateway" {
 }
 
 variable "instance_type" {
-  description = "Tipo de instância EC2 para o K3s (t3.micro, de 1 GiB, não comporta os 3 microsserviços)"
+  description = "Tipo de instância EC2 para o K3s (t3.small: maior tipo do plano gratuito; o t3.micro não comporta os 3 microsserviços)"
   type        = string
-  default     = "t3.medium"
+  default     = "t3.small"
 }
 
 variable "public_subnets" {
