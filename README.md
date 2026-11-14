@@ -52,7 +52,7 @@ execution-service); cada repositório publica o seu Ingress no namespace `offici
 ## 🎯 Propósito do Repositório
 
 O **fiap-officine-kubernets** gerencia e automatiza a infraestrutura de nuvem na AWS:
-* **Rede Isolada (VPC Multi-AZ)**: Provisionamento de subnets Públicas, Privadas e de Banco de Dados distribuídas entre 3 zonas de disponibilidade (`sa-east-1a`, `sa-east-1b`, `sa-east-1c`).
+* **Rede Isolada (VPC Multi-AZ)**: Provisionamento de subnets Públicas, Privadas e de Banco de Dados distribuídas entre 3 zonas de disponibilidade (`us-east-2a`, `us-east-2b`, `us-east-2c`).
 * **Segurança de Borda (Security Groups)**: Regras estritas de firewall isolando o RDS PostgreSQL, a Function Serverless (Lambda), os nós do Kubernetes e o API Gateway.
 * **Orquestração de Microsserviços**: Provisionamento de nó Kubernetes **K3s (Free Tier)** para homologação e **Amazon EKS** para produção.
 * **Ponto Único de Entrada (AWS API Gateway HTTP API v2)**:
@@ -70,8 +70,8 @@ graph TD
         CLIENT["Cliente / Navegador / Postman"]
     end
 
-    subgraph AWS_CLOUD["AWS Cloud — Região sa-east-1"]
-        APIGW["AWS API Gateway HTTP API v2\n(https://kai652jumh.execute-api.sa-east-1.amazonaws.com)"]
+    subgraph AWS_CLOUD["AWS Cloud — Região us-east-2"]
+        APIGW["AWS API Gateway HTTP API v2\n(https://kai652jumh.execute-api.us-east-2.amazonaws.com)"]
 
         subgraph VPC["VPC 10.0.0.0/16 (fiap-officine-homolog)"]
             subgraph PUBLIC_SUBNETS["Public Subnets (10.0.1.0/24, 10.0.2.0/24, 10.0.3.0/24)"]
@@ -128,15 +128,15 @@ graph TD
 O API Gateway provisionado por este repositório expõe diretamente os seguintes endpoints públicos para visualização e testes:
 
 * **Swagger UI (Documentação Interativa)**:  
-  👉 [https://kai652jumh.execute-api.sa-east-1.amazonaws.com/docs](https://kai652jumh.execute-api.sa-east-1.amazonaws.com/docs)
+  👉 [https://kai652jumh.execute-api.us-east-2.amazonaws.com/docs](https://kai652jumh.execute-api.us-east-2.amazonaws.com/docs)
 * **ReDoc (Documentação Técnica)**:  
-  👉 [https://kai652jumh.execute-api.sa-east-1.amazonaws.com/redoc](https://kai652jumh.execute-api.sa-east-1.amazonaws.com/redoc)
+  👉 [https://kai652jumh.execute-api.us-east-2.amazonaws.com/redoc](https://kai652jumh.execute-api.us-east-2.amazonaws.com/redoc)
 * **Contrato OpenAPI JSON (Postman / Swagger Editor)**:  
-  👉 [https://kai652jumh.execute-api.sa-east-1.amazonaws.com/openapi.json](https://kai652jumh.execute-api.sa-east-1.amazonaws.com/openapi.json)
+  👉 [https://kai652jumh.execute-api.us-east-2.amazonaws.com/openapi.json](https://kai652jumh.execute-api.us-east-2.amazonaws.com/openapi.json)
 * **Healthcheck de Uptime**:  
-  👉 [https://kai652jumh.execute-api.sa-east-1.amazonaws.com/health](https://kai652jumh.execute-api.sa-east-1.amazonaws.com/health)
+  👉 [https://kai652jumh.execute-api.us-east-2.amazonaws.com/health](https://kai652jumh.execute-api.us-east-2.amazonaws.com/health)
 * **Healthcheck Detalhado (DB + Cache)**:  
-  👉 [https://kai652jumh.execute-api.sa-east-1.amazonaws.com/api/v1/health](https://kai652jumh.execute-api.sa-east-1.amazonaws.com/api/v1/health)
+  👉 [https://kai652jumh.execute-api.us-east-2.amazonaws.com/api/v1/health](https://kai652jumh.execute-api.us-east-2.amazonaws.com/api/v1/health)
 
 ### 🔐 Comportamento de Acesso e Códigos de Retorno das Rotas
 
@@ -196,16 +196,16 @@ terraform apply -auto-approve
 
 ### 3. Conectar ao Terminal do Nó Kubernetes via AWS SSM (Sem Chave SSH):
 ```bash
-aws ssm start-session --target i-0484adf59b70f850f --region sa-east-1
+aws ssm start-session --target i-0484adf59b70f850f --region us-east-2
 ```
 
 ---
 
-## 🛰️ Recursos Ativos em Homologação (AWS sa-east-1)
+## 🛰️ Recursos Ativos em Homologação (AWS us-east-2)
 
 * **VPC ID**: `vpc-074f1e84d85d2f999`
 * **API Gateway ID**: `kai652jumh`
-* **URL Pública do API Gateway**: `https://kai652jumh.execute-api.sa-east-1.amazonaws.com`
+* **URL Pública do API Gateway**: `https://kai652jumh.execute-api.us-east-2.amazonaws.com`
 * **Instância K3s**: `i-0484adf59b70f850f` (IP: `54.232.242.171`)
 * **Security Group da Lambda**: `sg-099bc9a0635f1d4a6`
 * **Security Group do RDS**: `sg-0faf87d7a9a816a46`
