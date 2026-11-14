@@ -18,7 +18,7 @@ Repositório responsável pelo provisionamento e gerenciamento da **Infraestrutu
 | State remoto no S3 (`fiap-officine-tfstate-<account_id>`, criado pelo próprio workflow) | `environments/homolog/main.tf` + `.github/workflows/terraform.yml` |
 | AMI Ubuntu 24.04 da Canonical buscada na região (sem ID fixo de outra conta) | `modules/k3s/main.tf` (`data "aws_ami"`) |
 | Elastic IP no nó; o nó publica o kubeconfig (com esse IP) no SSM e os pipelines de deploy leem de lá | `modules/k3s/main.tf` (`aws_eip`, `user_data`) |
-| RDS acessível a partir do nó K3s (regra de entrada 5432) | `environments/homolog/main.tf` (`aws_security_group_rule.rds_from_k3s`) |
+| RDS acessível a partir do nó K3s (regra de entrada 5432 inline no SG do RDS) | `modules/security_groups` (`rds_allowed_security_group_ids`) |
 | Lambda de auth e authorizer ligadas automaticamente ao API Gateway quando já existem | `environments/homolog/main.tf` (`data "aws_lambda_functions"`) |
 | Parâmetros compartilhados no SSM (`/fiap-officine/homolog/...`): URL do API Gateway, role do nó, IP público, VPC, SG e subnet group do RDS | `environments/homolog/main.tf` (`aws_ssm_parameter.shared`) |
 
@@ -45,9 +45,10 @@ O Traefik roteia por path para cada Service (`/api/v1/ordens-servico` → os-ser
 `/api/v1/orcamentos|pagamentos` → billing-service, `/api/v1/execucoes|estoque` →
 execution-service); cada repositório publica o seu Ingress no namespace `officine`.
 
-> **Capacidade:** o nó t3.micro (1 GiB + 2 GiB swap) roda os três serviços com
-> 1 réplica cada (consumer/outbox no mesmo processo da API, sem Redis). Para a
-> gravação do vídeo, `instance_type = "t3.small"` dá folga (sai do Free Tier).
+> **Capacidade:** o nó é um **t3.medium (4 GiB)**. No t3.micro (1 GiB + 2 GiB de
+> swap) o nó ficou *NotReady* com os três serviços durante os deploys (o rolling
+> update sobe um pod a mais). Para economizar, pare a instância fora das demos: o
+> Elastic IP mantém o endereço.
 
 ## 🎯 Propósito do Repositório
 

@@ -18,3 +18,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "rds_allowed_security_group_ids" {
+  description = "Security groups extras com acesso ao RDS na porta 5432 (ex.: nó K3s). Regras ficam inline no SG do RDS (não misturar com aws_security_group_rule)"
+  type        = list(string)
+  default     = []
+}

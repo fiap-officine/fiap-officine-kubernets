@@ -81,6 +81,10 @@ module "security_groups" {
   vpc_id   = module.vpc.vpc_id
   vpc_cidr = var.vpc_cidr
 
+  # Pods do K3s acessam o RDS. A regra fica inline no SG do RDS: uma
+  # aws_security_group_rule separada seria apagada a cada apply.
+  rds_allowed_security_group_ids = [module.k3s.security_group_id]
+
   tags = local.common_tags
 }
 
@@ -94,24 +98,13 @@ module "k3s" {
   vpc_id    = module.vpc.vpc_id
   subnet_id = module.vpc.public_subnet_ids[0] # Subnet pública para acesso direto via IGW sem custo de NAT
 
-  instance_type = var.instance_type # t3.micro (Free Tier)
+  instance_type = var.instance_type # t3.medium (4 GiB)
   disk_size     = 20                # 20 GiB gp3 (Free Tier permite até 30 GiB)
 
   # O nó publica o kubeconfig em <ssm_prefix>/k3s/kubeconfig
   ssm_parameter_prefix = local.ssm_prefix
 
   tags = local.common_tags
-}
-
-# Pods do K3s acessam o RDS (o SG do RDS só liberava EKS e Lambda)
-resource "aws_security_group_rule" "rds_from_k3s" {
-  type                     = "ingress"
-  description              = "PostgreSQL a partir do no K3s"
-  from_port                = 5432
-  to_port                  = 5432
-  protocol                 = "tcp"
-  security_group_id        = module.security_groups.rds_security_group_id
-  source_security_group_id = module.k3s.security_group_id
 }
 
 # ──────────────────────────────────────────────
