@@ -52,9 +52,11 @@ subida. Depois, troque pela política [iam/github-actions-ci-policy.json](iam/gi
 - IAM apenas em roles, políticas e instance profiles `fiap-officine-*`;
 - S3 apenas no bucket de state `fiap-officine-tfstate-*`.
 
-No console: **IAM → Usuários → github-actions-officine → Adicionar permissões → Criar
-política em linha → JSON**, cole o arquivo, salve como `fiap-officine-ci` e depois
-**remova** a política `AdministratorAccess` do usuário.
+No console (política **gerenciada**: em linha, o limite de 2.048 caracteres é
+excedido): **IAM → Políticas → Criar política → JSON**, cole o arquivo e salve
+como `fiap-officine-ci`; depois **IAM → Usuários → github-actions-officine →
+Adicionar permissões → Anexar políticas diretamente → fiap-officine-ci** e
+**remova** a `AdministratorAccess` do usuário.
 
 O Traefik roteia por path para cada Service (`/api/v1/ordens-servico` → os-service,
 `/api/v1/orcamentos|pagamentos` → billing-service, `/api/v1/execucoes|estoque` →
