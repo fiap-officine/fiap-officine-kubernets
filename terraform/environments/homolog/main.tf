@@ -12,13 +12,12 @@ terraform {
     }
   }
 
-  # Backend remoto — descomente após criar o bucket via bootstrap
-  # backend "s3" {
-  #   bucket         = "fiap-officine-terraform-state"
-  #   key            = "homolog/terraform.tfstate"
-  #   region         = "sa-east-1"
-  #   encrypt        = true
-  # }
+  # State remoto no S3 (configuração parcial). O workflow terraform.yml cria o
+  # bucket fiap-officine-tfstate-<account_id> se não existir e passa
+  # bucket/key/region no init. Uso local sem AWS: terraform init -backend=false
+  backend "s3" {
+    encrypt = true
+  }
 }
 
 provider "aws" {
@@ -38,7 +37,18 @@ locals {
     Environment = local.environment
     ManagedBy   = "terraform"
   }
+
+  # Valores publicados no SSM e lidos pelos outros repositórios (database,
+  # microsserviços, lambda): sem copiar IDs/URLs à mão entre pipelines
+  ssm_prefix = "/${local.project}/${local.environment}"
+
+  # Funções do repositório fiap-officine-lambda (ligadas ao API Gateway quando existem)
+  auth_lambda_name       = "${local.project}-${local.environment}-auth-lambda"
+  authorizer_lambda_name = "${local.project}-${local.environment}-lambda-authorizer"
+  lambda_arns            = zipmap(data.aws_lambda_functions.all.function_names, data.aws_lambda_functions.all.function_arns)
 }
+
+data "aws_lambda_functions" "all" {}
 
 # ──────────────────────────────────────────────
 # VPC (100% Free Tier: sem NAT Gateway)
@@ -87,6 +97,36 @@ module "k3s" {
   instance_type = var.instance_type # t3.micro (Free Tier)
   disk_size     = 20                # 20 GiB gp3 (Free Tier permite até 30 GiB)
 
+  # O nó publica o kubeconfig em <ssm_prefix>/k3s/kubeconfig
+  ssm_parameter_prefix = local.ssm_prefix
+
+  tags = local.common_tags
+}
+
+# Pods do K3s acessam o RDS (o SG do RDS só liberava EKS e Lambda)
+resource "aws_security_group_rule" "rds_from_k3s" {
+  type                     = "ingress"
+  description              = "PostgreSQL a partir do no K3s"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  security_group_id        = module.security_groups.rds_security_group_id
+  source_security_group_id = module.k3s.security_group_id
+}
+
+# ──────────────────────────────────────────────
+# ECR: um repositório por microsserviço (imagens com tag = SHA do commit)
+# ──────────────────────────────────────────────
+module "ecr" {
+  source = "../../modules/ecr"
+
+  repository_names = [
+    "fiap-officine-os-service",
+    "fiap-officine-billing-service",
+    "fiap-officine-execution-service",
+  ]
+  max_image_count = 15
+
   tags = local.common_tags
 }
 
@@ -100,10 +140,31 @@ module "api_gateway" {
   description = "HTTP API Gateway for ${local.project} (${local.environment})"
   target_uri  = "http://${module.k3s.public_ip}:80"
 
-  auth_lambda_arn       = var.auth_lambda_arn
-  authorizer_lambda_arn = var.authorizer_lambda_arn
+  # Ligadas automaticamente depois que o fiap-officine-lambda publica as funções
+  # (basta rodar o workflow deste repositório de novo)
+  auth_lambda_arn       = var.auth_lambda_arn != null ? var.auth_lambda_arn : lookup(local.lambda_arns, local.auth_lambda_name, null)
+  authorizer_lambda_arn = var.authorizer_lambda_arn != null ? var.authorizer_lambda_arn : lookup(local.lambda_arns, local.authorizer_lambda_name, null)
 
   tags = local.common_tags
+}
+
+# ──────────────────────────────────────────────
+# Parâmetros compartilhados (SSM Parameter Store, gratuito)
+# ──────────────────────────────────────────────
+resource "aws_ssm_parameter" "shared" {
+  for_each = {
+    "api-gateway/url"          = module.api_gateway.api_endpoint
+    "k3s/node-role-name"       = module.k3s.node_role_name
+    "k3s/public-ip"            = module.k3s.public_ip
+    "network/vpc-id"           = module.vpc.vpc_id
+    "rds/security-group-id"    = module.security_groups.rds_security_group_id
+    "rds/db-subnet-group-name" = module.vpc.database_subnet_group_name
+    "lambda/security-group-id" = module.security_groups.lambda_security_group_id
+  }
+
+  name  = "${local.ssm_prefix}/${each.key}"
+  type  = "String"
+  value = each.value
 }
 
 # ──────────────────────────────────────────────

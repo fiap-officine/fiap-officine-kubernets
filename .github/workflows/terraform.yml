@@ -2,23 +2,25 @@ name: Terraform CI/CD - Kubernetes & Network
 
 on:
   push:
-    branches:
-      - main
-      - develop
-    paths:
-      - "terraform/**"
-      - ".github/workflows/terraform.yml"
+    branches: [main, develop]
+    paths: ["terraform/**", ".github/workflows/terraform.yml"]
   pull_request:
-    branches:
-      - main
-      - develop
-    paths:
-      - "terraform/**"
+    branches: [main, develop]
+    paths: ["terraform/**", ".github/workflows/terraform.yml"]
+  # Reaplicar sob demanda (ex.: ligar a Lambda ao API Gateway após o deploy dela)
+  workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
-  pull-requests: write
+
+# Sem lock no S3 (Terraform 1.9): uma execução por vez
+concurrency:
+  group: terraform-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-2
+  TF_STATE_KEY: platform/homolog/terraform.tfstate
 
 jobs:
   validate:
@@ -52,6 +54,9 @@ jobs:
     name: Terraform Plan
     needs: validate
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/environments/homolog
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -66,27 +71,45 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: sa-east-1
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
 
+      - name: Bucket do state remoto (cria se não existir)
+        id: state
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          BUCKET="fiap-officine-tfstate-${ACCOUNT_ID}"
+          if ! aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            # Outro repositório pode estar criando ao mesmo tempo: tolera a corrida
+            aws s3api create-bucket --bucket "$BUCKET" --region "$AWS_REGION" \
+              --create-bucket-configuration LocationConstraint="$AWS_REGION" \
+              || aws s3api head-bucket --bucket "$BUCKET"
+            aws s3api put-bucket-versioning --bucket "$BUCKET" \
+              --versioning-configuration Status=Enabled
+            aws s3api put-public-access-block --bucket "$BUCKET" \
+              --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+          fi
+          echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
+
+      # Ambiente único: homolog (projeto acadêmico) — develop e main aplicam aqui
       - name: Terraform Plan (Homolog)
-        if: github.ref == 'refs/heads/develop' || github.base_ref == 'develop'
         run: |
-          cd terraform/environments/homolog
-          terraform init
-          terraform plan -no-color
-
-      - name: Terraform Plan (Production)
-        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-        run: |
-          cd terraform/environments/production
-          terraform init
-          terraform plan -no-color
+          terraform init -input=false \
+            -backend-config="bucket=${{ steps.state.outputs.bucket }}" \
+            -backend-config="key=$TF_STATE_KEY" \
+            -backend-config="region=$AWS_REGION"
+          terraform plan -input=false -no-color
 
   apply:
     name: Terraform Apply
     needs: plan
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') && github.event_name == 'push'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'))
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/environments/homolog
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -101,18 +124,15 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: sa-east-1
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Terraform Apply (Homolog)
-        if: github.ref == 'refs/heads/develop'
         run: |
-          cd terraform/environments/homolog
-          terraform init
-          terraform apply -auto-approve
-
-      - name: Terraform Apply (Production)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          cd terraform/environments/production
-          terraform init
-          terraform apply -auto-approve
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          terraform init -input=false \
+            -backend-config="bucket=fiap-officine-tfstate-${ACCOUNT_ID}" \
+            -backend-config="key=$TF_STATE_KEY" \
+            -backend-config="region=$AWS_REGION"
+          terraform apply -input=false -auto-approve
+          terraform output
